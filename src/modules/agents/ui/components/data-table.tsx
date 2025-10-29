@@ -32,7 +32,7 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className="overflow-hidden rounded-lgborder bg-background">
+    <div className="overflow-hidden rounded-lg border bg-background">
       <Table>
         
         <TableBody>
