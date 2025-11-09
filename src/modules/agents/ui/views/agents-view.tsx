@@ -63,5 +63,5 @@ export const AgentsViewError = () => {
             title="Failed to load Agents"
             description="Please try again later."
         />
-  )
-}
+  );
+};
