@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { ChevronsDown } from "lucide-react";
+import { ChevronsDownIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,16 @@ export const CommandSelect = ({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 🧠 This will trigger refetch when typing
+  // ✅ triggers API refetch in parent when typing
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
     onSearch?.(val);
+  };
+
+  // ✅ clears search on dialog open/close
+  const handleOpenChange = (value: boolean) => {
+    if (!value) onSearch?.(""); // reset search when closing
+    setOpen(value);
   };
 
   const selectedOption = options.find((option) => option.value === value);
@@ -59,14 +65,14 @@ export const CommandSelect = ({
         <div>
           {selectedOption ? selectedOption.children : placeholder}
         </div>
-        <ChevronsDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        <ChevronsDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
 
-      <CommandResponsiveDialog open={open} onOpenChange={setOpen}>
+      <CommandResponsiveDialog open={open} onOpenChange={handleOpenChange}>
         <CommandInput
           placeholder="Search agents..."
           value={searchTerm}
-          onValueChange={handleSearchChange} // ✅ this is key
+          onValueChange={handleSearchChange} // ✅ updates parent search term
         />
         <CommandList>
           <CommandEmpty>
