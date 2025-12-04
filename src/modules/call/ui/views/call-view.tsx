@@ -17,7 +17,7 @@ export const CallView = ({
 
     if(data.status === "completed") {
         return(
-            <div className="felx h-screen items-center justify-center">
+            <div className="flex h-screen items-center justify-center">
                 <ErrorState 
                     title="Meeting has ended"
                     description="You can no longer join this meeting"
