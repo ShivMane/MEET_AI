@@ -1,0 +1,144 @@
+import JSONL from "jsonl-parse-stringify";
+
+import { inngest } from "./client";
+import { StreamTranscriptItem } from "@/modules/meetings/types";
+import { db } from "@/db";
+import { eq, inArray } from "drizzle-orm";
+import { agents, meetings, user } from "@/db/schema";
+import { createAgent, openai, TextMessage } from "@inngest/agent-kit";
+
+const summarizer = createAgent({
+  name: "Summarizer",
+  system: `
+You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
+
+Use the following markdown structure for every output:
+
+### Overview
+Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
+
+### Notes
+Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
+
+Example:
+#### Section Name
+- Main point or demo shown here
+- Another key insight or interaction
+- Follow-up tool or explanation provided
+
+#### Next Section
+- Feature X automatically does Y
+- Mention of integration with Z 
+`.trim(),
+  model: openai({ model: "chatgpt-4o-latest", apiKey: process.env.OPENAI_API_KEY }),
+});
+
+export const meetingsProcessing = inngest.createFunction(
+  { id: "meetings/processing" },
+  { event: "meetings/processing" },
+
+  async ({ event, step }) => {
+    const response = await step.run("Fetch Transcript", async () => {
+      return fetch(event.data.transcriptUrl).then((res) => res.text());
+    });
+
+    const transcript = await step.run("Parse Transcript", async () => {
+      return JSONL.parse<StreamTranscriptItem>(response);
+    });
+
+    const transcriptWithSpeakers = await step.run("Identify Speakers", async () => {
+      const speakerIds = [
+        ...new Set(transcript.map((item) => item.speaker_id)),
+      ];
+
+      const userSpeakers = await db
+        .select()
+        .from(user)
+        .where(inArray(user.id, speakerIds))
+        .then((users) =>
+          users.map((user) => ({
+            ...user,
+          }))
+        );
+
+      const agentSpeakers = await db
+        .select()
+        .from(agents)
+        .where(inArray(agents.id, speakerIds))
+        .then((agents) =>
+          agents.map((agent) => ({
+            ...agent,
+          }))
+        );
+
+      const speakers = [...userSpeakers, ...agentSpeakers];
+
+      return transcript.map((item) => {
+        const speaker = speakers.find(
+          (speaker) => speaker.id === item.speaker_id
+        );
+
+        if (!speaker) {
+          return {
+            ...item,
+            user: {
+              name: "Unknown Speaker",
+            },
+          };
+        }
+
+        return {
+          ...item,
+          user: {
+            name: speaker.name,
+          },
+        };
+      });
+    });
+
+    // ✅ FIX: Wrap the AI summarizer in a step.run()
+    const summary = await step.run("Generate Summary", async () => {
+      console.log("Starting AI summary generation...");
+      
+      const { output } = await summarizer.run(
+        "Summarize the following Transcript: " +
+          JSON.stringify(transcriptWithSpeakers)
+      );
+
+      if (!output || output.length === 0) {
+        throw new Error("No summary generated from AI");
+      }
+
+      const summaryText = (output[0] as TextMessage).content as string;
+      console.log("Summary generated:", summaryText.substring(0, 100) + "...");
+      
+      return summaryText;
+    });
+
+    await step.run("Save Summary", async () => {
+      console.log("Saving summary to database...");
+      
+      const [updatedMeeting] = await db
+        .update(meetings)
+        .set({
+          summary: summary, 
+          status: "completed",
+        })
+        .where(eq(meetings.id, event.data.meetingId))
+        .returning();
+
+      if (!updatedMeeting) {
+        throw new Error("Failed to update meeting");
+      }
+
+      console.log("Summary saved successfully for meeting:", updatedMeeting.id);
+      return updatedMeeting;
+    });
+
+    return {
+      meetingId: event.data.meetingId,
+      summaryLength: summary?.length || 0,
+      status: "completed",
+    };
+  }
+);
