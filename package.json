@@ -9,13 +9,16 @@
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "dev:webhook": "ngrok http --url=comfortably-unsunken-armani.ngrok-free.dev 3000"
+    "dev:webhook": "ngrok http --url=comfortably-unsunken-armani.ngrok-free.dev 3000",
+    "inngest": "C:/innegest/inngest.exe dev"
   },
   "dependencies": {
     "@dicebear/collection": "^9.2.4",
     "@dicebear/core": "^9.2.4",
     "@hookform/resolvers": "^5.2.1",
+    "@inngest/agent-kit": "^0.13.2",
     "@neondatabase/serverless": "^1.0.0",
+    "@opentelemetry/winston-transport": "^0.19.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -51,6 +54,7 @@
     "@trpc/server": "^11.6.0",
     "@trpc/tanstack-react-query": "^11.6.0",
     "better-auth": "^1.2.8",
+    "bufferutil": "^4.1.0",
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",
@@ -60,7 +64,9 @@
     "drizzle-orm": "^0.43.1",
     "embla-carousel-react": "^8.6.0",
     "humanize-duration": "^3.33.1",
+    "inngest": "^3.48.1",
     "input-otp": "^1.4.2",
+    "jsonl-parse-stringify": "^1.0.3",
     "lucide-react": "^0.539.0",
     "nanoid": "^5.1.6",
     "next": "15.3.2",
@@ -77,6 +83,7 @@
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
+    "utf-8-validate": "^6.0.6",
     "vaul": "^1.1.2",
     "zod": "^4.1.11"
   },
